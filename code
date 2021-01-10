@@ -1,0 +1,351 @@
+#install and load necessary stuff
+install.packages("ggplot2")
+library(ggplot2)
+
+install.packages("dplyr")
+library(dplyr)
+
+install.packages("reader")
+library(reader)
+
+install.packages("tidyverse")
+library(tidyverse)
+
+install.packages("hrbrthemes") 
+library(hrbrthemes)
+
+install.packages("viridis") 
+library(viridis)
+
+install.packages("ggridges") 
+library(ggridges)
+
+
+#Load data from excel file
+data = read.csv(file= "D:\\project\\2020\\1st sem\\Programming for Data Analysis (CT127-3-2-PFDA)\\Hourly weather data.csv", header = TRUE, sep = ",")
+view(data)
+
+
+###
+#8 Data Visualization + Exploration
+#4 Visualization + Exploration(replace missing value)
+#1. Replace NULL Pressure with MEAN, grouped by origin, grouped by month
+pressureNA=filter(data, is.na(pressure)) %>% 
+  select(c(origin, month))
+NAbymonth= unique(pressureNA$month)
+NAbyorigin= unique(pressureNA$origin)
+# Create new column
+data = mutate(data, pressureFixed=pressure)
+for (i in NAbyorigin){
+  for (j in NAbymonth){
+    # return non NA to calculate the mean
+    fd= filter(data, origin==i, month==j, !is.na(pressure)) %>% 
+      select(pressure)
+    
+    # calculate the mean
+    avg = mean(fd$pressure)
+    
+    # Replace NA with the mean in the new column
+    data = mutate(data, 
+                  pressureFixed=
+                    ifelse(is.na(pressure) & origin==i & month==j, avg, pressureFixed))
+  }
+}
+
+#Frequency polygons for pressure of each origins based on month
+ggplot(data, aes(x = pressureFixed, color = origin))+
+  geom_freqpoly()+
+  facet_wrap(~month)+
+  labs(title = "Frequency polygons for pressure of each origins based on month", x="pressure", y="count")
+
+
+#2. Replace NULL wind direction with MEAN, grouped by origin, grouped by month
+wind_dirNA=filter(data, is.na(wind_dir)) %>% 
+  select(c(origin, month))
+NAbymonth= unique(wind_dirNA$month)
+NAbyorigin= unique(wind_dirNA$origin)
+# Create new column
+data = mutate(data, wind_dirFixed=wind_dir)
+for (i in NAbyorigin){
+  for (j in NAbymonth){
+    # return non NA to calculate the mean
+    fd= filter(data, origin==i, month==j, !is.na(wind_dir)) %>% 
+      select(wind_dir)
+    
+    # calculate the mean
+    avg = mean(fd$wind_dir)
+    
+    # Replace NA with the mean in the new column
+    data = mutate(data, 
+                  wind_dirFixed=
+                    ifelse(is.na(wind_dir) & origin==i & month==j, avg, wind_dirFixed))
+  }
+}
+
+#Violin plot with jitter for wind direction of each origins based on month  
+data %>%
+  ggplot(aes(x=origin, y=wind_dirFixed, fill=origin)) +
+  geom_violin() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  facet_wrap(~month)+
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Violin plot with jitter for wind direction of each origins based on month") +
+  xlab("") 
+
+
+#3. Replace NULL wind speed with MEAN, grouped by origin, grouped by month
+wind_speedNA=filter(data, is.na(wind_speed)) %>% 
+  select(c(origin, month))
+NAbymonth= unique(wind_speedNA$month)
+NAbyorigin= unique(wind_speedNA$origin)
+# Create new column
+data = mutate(data, wind_speedFixed=wind_speed)
+for (i in NAbyorigin){
+  for (j in NAbymonth){
+    # return non NA to calculate the mean
+    fd= filter(data, origin==i, month==j, !is.na(wind_speed)) %>% 
+      select(wind_speed)
+    
+    # calculate the mean
+    avg = mean(fd$wind_speed)
+    
+    # Replace NA with the mean in the new column
+    data = mutate(data, 
+                  wind_speedFixed=
+                    ifelse(is.na(wind_speed) & origin==i & month==j, avg, wind_speedFixed))
+  }
+}
+
+#Histogram for wind speed of each origins based on month
+ggplot(data, aes(x = wind_speedFixed, color = origin))+
+  geom_histogram()+
+  facet_wrap(~month)+
+  labs(title = "Histogram for  wind speed of each origins based on month", x="wind speed", y="count")
+
+
+#4. Replace NULL wind gust 0, grouped by origin, grouped by month
+data = mutate(data, wind_gustFixed =
+                ifelse(is.na(wind_gust), 0, wind_gust))
+
+#Box plot with jitter for wind gust of each origins based on month 
+data[data$wind_gustFixed>0,] %>%
+  ggplot(aes(y = wind_gustFixed, x=origin, color=origin)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  facet_wrap(~month)+
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Box plot with jitter for wind gust of each origins based on month") +
+  xlab("") 
+
+
+#4 Visualization + Exploration(deep one by one)
+#5. Line Graph of Hourly visibility at JFK in June and December 2013
+jfk_June <- data[data$origin == "JFK" & data$month == 6, ]
+ggplot(jfk_June,aes(x=time_hour,y=visib,group = 0)) + 
+  geom_line() +
+  labs(x = "Time (Hours)", y = "Visibility", 
+       title = "Line Graph of Hourly visibility at JFK in June 2013")
+
+jfk_Dec <- data[data$origin == "JFK" & data$month == 12, ]
+ggplot(jfk_Dec,aes(x=time_hour,y=visib,group = 0)) + 
+  geom_line() +
+  labs(x = "Time (Hours)", y = "Visibility", 
+       title = "Line Graph of Hourly visibility at JFK in December 2013")
+
+#6. Line Graph of Hourly visibility at LGA in July and January 2013
+lga_July <- data[data$origin == "LGA" & data$month == 7, ]
+ggplot(lga_July,aes(x=time_hour,y=visib,group = 0)) + 
+  geom_line() +
+  labs(x = "Time (Hours)", y = "Visibility", 
+       title = "Line Graph of Hourly visibility at LGA in July 2013")
+
+lga_Jan <- data[data$origin == "LGA" & data$month == 1, ]
+ggplot(lga_Jan,aes(x=time_hour,y=visib,group = 0)) + 
+  geom_line() +
+  labs(x = "Time (Hours)", y = "Visibility", 
+       title = "Line Graph of Hourly visibility at LGA in January 2013")
+
+#7. Scatter plot for dew point against humidity of each origins based on month
+ggplot(data, aes(x = humid, y = dewp, color = origin))+
+  geom_point()+
+  geom_smooth(method = 'loess', color='black')+
+  facet_wrap(~month)+
+  labs(title = "Scatter plot for dew point against humidity of each origins based on month", x="humidity", y="dew point")
+
+#8. Line graph for visibility against humidity of each origins based on month
+ggplot(data,aes(x=humid, y=visib, color = origin))+
+  geom_line()+
+  geom_smooth(method = "loess",color='gold')+
+  facet_wrap(~month)+
+  labs(title="Line graph for visibility against humidity of each origins based on month",x="humidity",y="visibility")
+
+
+###
+#6 Data Visualization + Data Manipulation
+#1. Find mean for humidity by months based on origin with bar chart
+data %>%
+  filter(origin == "JFK" ) %>%
+  group_by(month) %>%
+  summarise(mean_humid = mean(humid)) %>%
+  arrange(desc(mean_humid)) %>%
+  ggplot()+
+  geom_bar(aes(x=reorder(month,-mean_humid),y=mean_humid,fill=month),stat="identity")+
+  geom_label(aes(x=reorder(month,-mean_humid),y=mean_humid,label = round(mean_humid,digits=4)))+
+  guides(fill = FALSE)+
+  labs(title = "Bar Chart of Mean Humidity JFK by Months", x="Month", y="Mean Humidity")
+
+data %>%
+  filter(origin == "LGA" ) %>%
+  group_by(month) %>%
+  summarise(mean_humid = mean(humid)) %>%
+  arrange(desc(mean_humid)) %>%
+  ggplot()+
+  geom_bar(aes(x=reorder(month,-mean_humid),y=mean_humid,fill=month),stat="identity")+
+  geom_label(aes(x=reorder(month,-mean_humid),y=mean_humid,label = round(mean_humid,digits=4)))+
+  guides(fill = FALSE)+
+  labs(title = "Bar Chart of Mean Humidity LGA by Months", x="Month", y="Mean Humidity")
+
+#2. Find mean for temperature by months based on origin with box plot
+data %>%
+  filter(origin == "JFK" ) %>%
+  group_by(month) %>%
+  summarise(mean_temp = mean(temp), temp=temp) %>%
+  arrange(desc(mean_temp)) %>%
+  ggplot(aes(x=reorder(month,-mean_temp),y=temp,fill=month),stat="identity")+
+  geom_boxplot()+
+  stat_summary(fun = mean, colour = "gold", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=mean, geom="text", size=4, hjust = -0.3)+
+  guides(fill = FALSE)+
+  labs(title = "Box Plot of Mean Temperature JFK by Months", x="Month", y="Mean Temperature")
+
+data %>%
+  filter(origin == "LGA" ) %>%
+  group_by(month) %>%
+  summarise(mean_temp = mean(temp), temp=temp) %>%
+  arrange(desc(mean_temp)) %>%
+  ggplot(aes(x=reorder(month,-mean_temp),y=temp,fill=month),stat="identity")+
+  geom_boxplot()+
+  stat_summary(fun = mean, colour = "gold", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=mean, geom="text", size=4, hjust = -0.3)+
+  guides(fill = FALSE)+
+  labs(title = "Box Plot of Mean Temperature LGA by Months", x="Month", y="Mean Temperature")
+
+#3. Find mean for precipitation by months based on origin with bar chart
+data %>%
+  filter(origin == "JFK" ) %>%
+  group_by(month) %>%
+  summarise(mean_precip = mean(precip)) %>%
+  arrange(desc(mean_precip)) %>%
+  ggplot()+
+  geom_bar(aes(x=reorder(month,-mean_precip),y=mean_precip,fill=month),stat="identity")+
+  geom_label(aes(x=reorder(month,-mean_precip),y=mean_precip,label = round(mean_precip,digits=4)))+
+  guides(fill = FALSE)+
+  labs(title = "Bar Chart of Mean Precipitation JFK by Months", x="Month", y="Mean Precipitation")
+
+data %>%
+  filter(origin == "LGA" ) %>%
+  group_by(month) %>%
+  summarise(mean_precip = mean(precip)) %>%
+  arrange(desc(mean_precip)) %>%
+  ggplot()+
+  geom_bar(aes(x=reorder(month,-mean_precip),y=mean_precip,fill=month),stat="identity")+
+  geom_label(aes(x=reorder(month,-mean_precip),y=mean_precip,label = round(mean_precip,digits=4)))+
+  guides(fill = FALSE)+
+  labs(title = "Bar Chart of Mean Precipitation LGA by Months", x="Month", y="Mean Precipitation")
+
+#4. Find mean for dew point by months based on origin with box plot
+data %>%
+  filter(origin == "JFK" ) %>%
+  group_by(month) %>%
+  summarise(mean_dewp = mean(dewp), dewp=dewp) %>%
+  arrange(desc(mean_dewp)) %>%
+  ggplot(aes(x=reorder(month,-mean_dewp),y=dewp,fill=month),stat="identity")+
+  geom_boxplot()+
+  stat_summary(fun = mean, colour = "gold", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=mean, geom="text", size=4, hjust = -0.3)+
+  guides(fill = FALSE)+
+  labs(title = "Box Plot of Mean Dew point JFK by Months", x="Month", y="Mean Dew Point")
+
+data %>%
+  filter(origin == "LGA" ) %>%
+  group_by(month) %>%
+  summarise(mean_dewp = mean(dewp), dewp=dewp) %>%
+  arrange(desc(mean_dewp)) %>%
+  ggplot(aes(x=reorder(month,-mean_dewp),y=dewp,fill=month),stat="identity")+
+  geom_boxplot()+
+  stat_summary(fun = mean, colour = "gold", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=mean, geom="text", size=4, hjust = -0.3)+
+  guides(fill = FALSE)+
+  labs(title = "Box Plot of Mean Dew point LGA by Months", x="Month", y="Mean Dew Point")
+
+
+#2 Vizualize + manipulate(min & max)
+#5. Jitter Plot Min & Max Temperature of Origins based on Months
+ggplot(data, aes(x = month, y = temp)) +
+  geom_jitter(position = position_jitter(width = 0.1, height = 0), alpha = 1/4) +
+  stat_summary(fun = min, colour = "coral", geom = "point", size = 4) +
+  stat_summary(fun = max, colour = "cyan", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=max,geom="text", size=3, hjust = -0.3)+
+  stat_summary(aes(label=round(..y..,2)), fun=min,geom="text", size=3, hjust = -0.3)+
+  facet_wrap(~origin)+
+  labs(title = "Jitter Plot Min and Max Temperature of Origins based on Months", x="Month", y="Temperature")
+
+#6. Box plot for Max & Min Wind Speed of each origins based on month 
+ggplot(data,aes(x=origin,y=wind_speedFixed))+
+  geom_boxplot()+
+  stat_summary(fun = min, colour = "coral", geom = "point", size = 4) +
+  stat_summary(fun = max, colour = "cyan", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=max,geom="text", size=4, hjust = -0.3)+
+  stat_summary(aes(label=round(..y..,2)), fun=min,geom="text", size=4, hjust = -0.3)+
+  facet_wrap(~month)+
+  labs(title="Box plot Min and Max Wind Speed of Origins based on Months", x="Month", y="Wind Speed")
+
+
+###
+#4 Extra Features
+#1
+#Violin graph Median of Pressure of each origins based on month
+ggplot(data,aes(x=origin,y=pressureFixed, fill=origin))+
+  geom_violin()+
+  stat_summary(fun = median, colour = "red", geom = "point", size = 4)+
+  stat_summary(aes(label=round(..y..,2)), fun=median,geom="text", size=3, hjust = -0.3)+
+  theme_ipsum() +
+  theme(legend.position="none", plot.title = element_text(size=11))+
+  facet_wrap(~month)+
+  labs(title="Violin Graph Median Pressure of Origins based on Months", x="Month", y="Wind Speed")+
+  xlab("") 
+
+#2
+#Ridgeline for temperature of each origins based on month  
+ggplot(data, aes(x = temp, y = origin, fill = origin)) +
+  geom_density_ridges() +
+  ggtitle("Ridgeline for temperature of each origins based on month") +
+  facet_wrap(~month)+
+  theme_ridges() + 
+  theme(legend.position = "none")
+
+#3
+#Linear regression graph for dew point against humidity of each origins based on month
+ggplot(data, aes(x = humid, y = dewp, color = origin))+
+  geom_point()+
+  geom_smooth(method = 'lm', color="black")+
+  facet_wrap(~month)+
+  labs(title = "Linear regression graph for dew point against humidity of each origins based on month", x="humidity", y="dew point")
+
+#4
+#Density graph for humidity of each origins based on month  
+ggplot(data,aes(x=humid, color=origin))+
+  geom_density()+
+  ggtitle("Density graph for humidity of each origins based on month") +
+  theme_ipsum()+
+  facet_wrap(~month)
